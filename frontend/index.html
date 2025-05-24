@@ -166,4 +166,16 @@
     <b>WebSocket Logları</b>
     <div id="ws-logs-content"></div>
   </div>
+
+  <div class="vad-controls" style="margin-top: 20px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px;">
+    <p class="md-typescale-body-medium">Voice Activity Detection Sensitivity</p>
+    <md-select id="vadSensitivity" label="VAD Sensitivity">
+      <md-select-option value="less">Less Sensitive</md-select-option>
+      <md-select-option value="more">More Sensitive</md-select-option>
+    </md-select>
+    <p class="md-typescale-body-small" style="color: #666; margin-top: 8px;">
+      Less: Daha az kesinti, daha akıcı konuşma<br>
+      More: Daha fazla kesinti, daha interaktif konuşma
+    </p>
+  </div>
 </body>

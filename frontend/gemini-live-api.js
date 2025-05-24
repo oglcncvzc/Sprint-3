@@ -46,6 +46,10 @@ class GeminiLiveAPI {
         this.accessToken = "";
         this.websocket = null;
 
+        this.isInterrupted = false;
+        this.isModelSpeaking = false;
+        this.vadSensitivity = 'less'; // 'more' veya 'less'
+
         console.log("Created Gemini Live API object: ", this);
     }
 
@@ -75,19 +79,73 @@ class GeminiLiveAPI {
     onReceiveMessage(messageEvent) {
         console.log("Message received: ", messageEvent);
         const messageData = JSON.parse(messageEvent.data);
+        
+        if (messageData.setupComplete) {
+            console.log("Setup complete, enabling mic button");
+            this.onSetupComplete();
+            return;
+        }
+
+        if (messageData.serverContent?.interrupted) {
+            console.log('Gemini: Interrupted');
+            this.isInterrupted = true;
+            this.onInterrupted();
+            return;
+        }
+
         const message = new GeminiLiveResponseMessage(messageData);
-        console.log("onReceiveMessageCallBack this ", this);
         this.onReceiveResponse(message);
+    }
+
+    onInterrupted() {
+        if (this.audioOutputManager) {
+            this.audioOutputManager.stop();
+        }
+        
+        if (this.onInterruptionCallback) {
+            this.onInterruptionCallback();
+        }
+    }
+
+    setVADSensitivity(sensitivity) {
+        if (sensitivity === 'more' || sensitivity === 'less') {
+            console.log(`VAD sensitivity changing from ${this.vadSensitivity} to ${sensitivity}`);
+            this.vadSensitivity = sensitivity;
+            this.sendVADSensitivityUpdate(sensitivity);
+            
+            // State değişikliğini logla
+            if (this.onVADSensitivityChanged) {
+                this.onVADSensitivityChanged(sensitivity);
+            }
+        }
+    }
+
+    sendVADSensitivityUpdate(sensitivity) {
+        const message = {
+            vad_config: {
+                sensitivity: sensitivity
+            }
+        };
+        this.sendMessage(message);
+    }
+
+    sendTurnComplete() {
+        const message = {
+            client_content: {
+                turns: [{
+                    role: "user",
+                    parts: []
+                }],
+                turn_complete: true
+            }
+        };
+        this.sendMessage(message);
     }
 
     setupWebSocketToService() {
         try {
             console.log("Connecting to WebSocket server:", this.proxyUrl);
             
-            if (!this.proxyUrl.startsWith('ws://') && !this.proxyUrl.startsWith('wss://')) {
-                throw new Error("Invalid WebSocket URL format. URL must start with 'ws://' or 'wss://'");
-            }
-
             this.webSocket = new WebSocket(this.proxyUrl);
 
             this.webSocket.onclose = (event) => {
@@ -169,6 +227,62 @@ class GeminiLiveAPI {
 
     sendImageMessage(base64Image, mime_type = "image/jpeg") {
         this.sendRealtimeInputMessage(base64Image, mime_type);
+    }
+
+    sendTurnContinueMessage() {
+        const message = {
+            client_content: {
+                turns: [{
+                    role: "user",
+                    parts: []
+                }],
+                turn_complete: false
+            }
+        };
+        this.sendMessage(message);
+    }
+
+    handleTurnBoundary() {
+        // Turn başlangıcı
+        this.onTurnStart = () => {
+            console.log("Turn başladı");
+            setAppStatus("user_speaking");
+        };
+
+        // Turn sonu
+        this.onTurnEnd = () => {
+            console.log("Turn bitti");
+            setAppStatus("connected");
+        };
+    }
+
+    updateVADAndTurnBoundary(sensitivity) {
+        const vadThresholds = {
+            'less': {
+                silenceDuration: 1000, // 1 saniye
+                energyThreshold: 0.3
+            },
+            'more': {
+                silenceDuration: 500,  // 0.5 saniye
+                energyThreshold: 0.2
+            }
+        };
+
+        const config = vadThresholds[sensitivity];
+        this.updateVADConfig(config);
+    }
+
+    updateVADConfig(config) {
+        this.vadConfig = {
+            ...this.vadConfig,
+            ...config
+        };
+        
+        // VAD değişikliğini logla
+        logWsEvent("VAD", "Config updated", config);
+        
+        // UI feedback
+        updateAudioFeedback('vad_updated');
     }
 }
 

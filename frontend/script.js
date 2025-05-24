@@ -108,6 +108,18 @@ liveAudioInputManager.onNewAudioRecordingChunk = (audioData) => {
     geminiLiveApi.sendAudioMessage(audioData);
 };
 
+// Turn complete callback
+liveAudioInputManager.onTurnCompleteCallback = (message) => {
+    geminiLiveApi.sendMessage(message);
+};
+
+// Turn complete sinyali gönderme
+function submitTurn() {
+    geminiLiveApi.sendTurnComplete();
+    micBtn.disabled = true;
+    micOffBtn.disabled = true;
+}
+
 // Chat baloncuklu mesaj ekleme
 function addChatMessage(text, sender = "user") {
     const chat = document.getElementById("text-chat");
@@ -148,6 +160,23 @@ window.addEventListener("DOMContentLoaded", function() {
     if (sendBtn) {
         sendBtn.addEventListener("click", newUserMessage);
     }
+
+    // VAD sensitivity select listener
+    const vadSelect = document.getElementById("vadSensitivity");
+    if (vadSelect) {
+        vadSelect.addEventListener("change", function(e) {
+            const sensitivity = e.target.value;
+            console.log("VAD sensitivity changed to:", sensitivity);
+            setVADSensitivity(sensitivity);
+            
+            // UI feedback
+            const feedback = sensitivity === 'more' ? 
+                "Daha hassas mod: Konuşma kesintileri daha kolay tetiklenecek" : 
+                "Daha az hassas mod: Konuşma kesintileri daha az tetiklenecek";
+            
+            showDialogWithMessage(feedback);
+        });
+    }
 });
 
 function startAudioInput() {
@@ -158,18 +187,47 @@ function stopAudioInput() {
     liveAudioInputManager.disconnectMicrophone();
 }
 
+// Interruption handler
+geminiLiveApi.onInterruptionCallback = () => {
+    console.log('Interruption detected');
+    liveAudioOutputManager.handleInterruption();
+    setAppStatus('interrupted');
+};
+
+// VAD sensitivity ayarı
+function setVADSensitivity(sensitivity) {
+    console.log("Setting VAD sensitivity to:", sensitivity);
+    geminiLiveApi.setVADSensitivity(sensitivity);
+    
+    // Log ekle
+    logWsEvent("VAD", "Sensitivity changed", sensitivity);
+}
+
+// Model speaking state yönetimi
+function setModelSpeaking(isSpeaking) {
+    geminiLiveApi.isModelSpeaking = isSpeaking;
+    if (isSpeaking) {
+        setAppStatus('speaking');
+    } else {
+        setAppStatus('connected');
+    }
+}
+
+// Mic button yönetimi
 function micBtnClick() {
-    // Mikrofona basınca sesli mesajı DURDUR
     stopAudioInput();
     micBtn.hidden = true;
     micOffBtn.hidden = false;
+    liveAudioInputManager.stopRecording();
+    submitTurn(); // Turn complete sinyali gönder
 }
 
 function micOffBtnClick() {
-    // Mikrofona tekrar basınca sesli mesajı BAŞLAT
     startAudioInput();
     micBtn.hidden = false;
     micOffBtn.hidden = true;
+    liveAudioInputManager.turnComplete = false;
+    liveAudioOutputManager.clearInterruption();
 }
 
 function showDialogWithMessage(messageText) {
@@ -244,6 +302,9 @@ function setAppStatus(status) {
             connected.hidden = false;
             break;
         case "speaking":
+            speaking.hidden = false;
+            break;
+        case "interrupted":
             speaking.hidden = false;
             break;
         default:
@@ -369,5 +430,42 @@ function disconnectBtnClick() {
     } catch (error) {
         console.error("Bağlantı kapatılamadı:", error);
         showDialogWithMessage("Bağlantı kapatılamadı: " + error.message);
+    }
+}
+
+geminiLiveApi.onSetupComplete = () => {
+    console.log("Setup complete, enabling mic button");
+    micBtn.disabled = false;
+    micOffBtn.disabled = false;
+    setAppStatus("connected");
+};
+
+// UI feedback için
+function updateAudioFeedback(status) {
+    const feedbackElement = document.getElementById('audio-feedback');
+    switch(status) {
+        case 'speaking':
+            feedbackElement.textContent = 'Konuşma devam ediyor...';
+            break;
+        case 'silence':
+            feedbackElement.textContent = 'Sessizlik algılandı...';
+            break;
+        case 'turn_complete':
+            feedbackElement.textContent = 'Turn tamamlandı';
+            break;
+    }
+}
+
+function logMessage(message) {
+    // Console'a log
+    console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+    
+    // UI'a log
+    const logDiv = document.getElementById('log-output');
+    if (logDiv) {
+        const logElement = document.createElement('div');
+        logElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logDiv.appendChild(logElement);
+        logDiv.scrollTop = logDiv.scrollHeight;
     }
 }
