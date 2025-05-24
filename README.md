@@ -10,3 +10,24 @@
 - `frontend/cookieJar.js`: Script for managing cookies
 
 
+git clone https://github.com/GoogleCloudPlatform/generative-ai.git
+cd generative-ai/gemini/multimodal-live-api/websocket-demo-app
+
+python -m venv env
+source env/bin/activate
+
+pip3 install -r backend/requirements.txt
+
+python backend/main.py
+
+Start the frontend
+
+cd frontend
+python -m http.server
+
+Google Cloud access token
+gcloud components update
+gcloud components install beta
+gcloud config set project YOUR-PROJECT-ID
+gcloud auth print-access-token
+
