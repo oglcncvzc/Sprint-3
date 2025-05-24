@@ -108,24 +108,47 @@ liveAudioInputManager.onNewAudioRecordingChunk = (audioData) => {
     geminiLiveApi.sendAudioMessage(audioData);
 };
 
-function addMessageToChat(message) {
-    const textChat = document.getElementById("text-chat");
-    const newParagraph = document.createElement("p");
-    newParagraph.textContent = message;
-    textChat.appendChild(newParagraph);
+// Chat baloncuklu mesaj ekleme
+function addChatMessage(text, sender = "user") {
+    const chat = document.getElementById("text-chat");
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble " + (sender === "user" ? "user" : "model");
+    bubble.textContent = text;
+    chat.appendChild(bubble);
+    chat.scrollTop = chat.scrollHeight;
 }
 
-function newModelMessage(message) {
-    addMessageToChat(">> " + message);
-}
-
+// Kullanıcı mesajı gönderme
 function newUserMessage() {
-    const textMessage = document.getElementById("text-message");
-    addMessageToChat("User: " + textMessage.value);
-    geminiLiveApi.sendTextMessage(textMessage.value);
-
-    textMessage.value = "";
+    const textInput = document.getElementById("text-message");
+    const text = textInput.value.trim();
+    if (!text) return;
+    addChatMessage(text, "user");
+    geminiLiveApi.sendTextMessage(text);
+    textInput.value = "";
 }
+
+// Model mesajı ekleme
+function newModelMessage(message) {
+    addChatMessage(message, "model");
+}
+
+// Enter ile gönderme
+window.addEventListener("DOMContentLoaded", function() {
+    const textInput = document.getElementById("text-message");
+    const sendBtn = document.getElementById("send-btn");
+    if (textInput) {
+        textInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                newUserMessage();
+            }
+        });
+    }
+    if (sendBtn) {
+        sendBtn.addEventListener("click", newUserMessage);
+    }
+});
 
 function startAudioInput() {
     liveAudioInputManager.connectMicrophone();
@@ -136,16 +159,15 @@ function stopAudioInput() {
 }
 
 function micBtnClick() {
-    console.log("micBtnClick");
+    // Mikrofona basınca sesli mesajı DURDUR
     stopAudioInput();
     micBtn.hidden = true;
     micOffBtn.hidden = false;
 }
 
 function micOffBtnClick() {
-    console.log("micOffBtnClick");
+    // Mikrofona tekrar basınca sesli mesajı BAŞLAT
     startAudioInput();
-
     micBtn.hidden = false;
     micOffBtn.hidden = true;
 }

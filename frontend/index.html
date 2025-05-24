@@ -30,13 +30,7 @@
   <script defer src="script.js"></script>
 </head>
 <body>
-  <h1 class="md-typescale-display-medium">Multimodal Live API</h1>
-  <p class="md-typescale-body-medium">
-    The Multimodal Live API enables low-latency, two-way interactions that use
-    text, audio, and video input, with audio and text output.
-  </p>
-  <br />
-
+  <h1 class="md-typescale-display-medium">PhiTalk</h1>
   <div id="model-config-container">
     <div>
       <md-outlined-text-field
@@ -95,71 +89,69 @@
 
     <div>
       <br />
-      <md-outlined-button onclick="connectBtnClick()"
-        >Connect</md-outlined-button
-      >
-      <br /><br />
-      <md-outlined-button onclick="disconnectBtnClick()"
-        >Disconnect</md-outlined-button
-      >
+      <md-outlined-button id="connectBtn" onclick="connectBtnClick()">Connect</md-outlined-button>
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 12px;">
+        <md-outlined-button id="disconnectBtn" onclick="disconnectBtnClick()">Disconnect</md-outlined-button>
+      </div>
     </div>
   </div>
   <br />
 
-  <div id="model-state">
-    <div id="disconnected" class="state">
-      <span class="material-symbols-outlined"> cloud_off </span>
-      <span class="icon-text">disconnected</span>
+  <div id="model-state-row" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+    <div id="model-state" style="flex: 1;">
+      <div id="disconnected" class="state">
+        <span class="material-symbols-outlined"> cloud_off </span>
+        <span class="icon-text">disconnected</span>
+      </div>
+      <div id="connecting" class="state" hidden>
+        <span class="material-symbols-outlined"> hourglass_empty </span>
+        <span class="icon-text">connecting...</span>
+      </div>
+      <div id="connected" class="state" hidden>
+        <span class="material-symbols-outlined"> cloud_done </span>
+        <span class="icon-text">connected</span>
+      </div>
+      <div id="speaking" class="state" hidden>
+        <span class="material-symbols-outlined"> graphic_eq </span>
+        <span class="icon-text">model speaking</span>
+      </div>
     </div>
-    <div id="connecting" class="state" hidden>
-      <span class="material-symbols-outlined"> hourglass_empty </span>
-      <span class="icon-text">connecting...</span>
-    </div>
-    <div id="connected" class="state" hidden>
-      <span class="material-symbols-outlined"> cloud_done </span>
-      <span class="icon-text">connected</span>
-    </div>
-    <div id="speaking" class="state" hidden>
-      <span class="material-symbols-outlined"> graphic_eq </span>
-      <span class="icon-text">model speaking</span>
+    <div id="mic-controls-row" style="display: flex; align-items: center; gap: 8px;">
+      <md-outlined-select
+        id="audioSource"
+        label="Microphone Input"
+        onchange="newMicSelected()"
+        style="min-width: 200px;"
+      >
+      </md-outlined-select>
+      <span id="micBtn">
+        <md-filled-icon-button onclick="micBtnClick()">
+          <md-icon>mic</md-icon>
+        </md-filled-icon-button>
+      </span>
+      <span id="micOffBtn" hidden>
+        <md-filled-icon-button onclick="micOffBtnClick()">
+          <md-icon>mic_off</md-icon>
+        </md-filled-icon-button>
+      </span>
     </div>
   </div>
 
   <br />
 
   <div id="user-input-container">
-    <div>
-      <md-outlined-select
-        id="audioSource"
-        label="Microphone Input"
-        onchange="newMicSelected()"
-      >
-      </md-outlined-select>
-      <br />
-      <div class="spread">
-        <span id="micBtn">
-          <md-filled-icon-button onclick="micBtnClick()">
-            <md-icon>mic</md-icon>
-          </md-filled-icon-button>
-        </span>
-        <span id="micOffBtn" hidden>
-          <md-filled-icon-button onclick="micOffBtnClick()">
-            <md-icon>mic_off</md-icon>
-          </md-filled-icon-button>
-        </span>
+    <div class="text-message-container chat-box">
+      <div class="chat-input-row">
+        <md-outlined-text-field
+          id="text-message"
+          label="Text Message"
+          value=""
+          style="flex:1;"
+        ></md-outlined-text-field>
+        <md-icon-button id="send-btn">
+          <md-icon>send</md-icon>
+        </md-icon-button>
       </div>
-    </div>
-    
-    <div class="text-message-container">
-      <md-outlined-text-field
-        id="text-message"
-        label="Text Message"
-        value=""
-      ></md-outlined-text-field>
-      <md-icon-button onclick="newUserMessage()">
-        <md-icon>send</md-icon>
-      </md-icon-button>
-      <br />
       <div id="text-chat"></div>
     </div>
   </div>
