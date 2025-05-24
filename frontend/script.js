@@ -25,10 +25,6 @@ const speaking = document.getElementById("speaking");
 
 const micBtn = document.getElementById("micBtn");
 const micOffBtn = document.getElementById("micOffBtn");
-const cameraBtn = document.getElementById("cameraBtn");
-const screenBtn = document.getElementById("screenBtn");
-
-const cameraSelect = document.getElementById("cameraSource");
 const micSelect = document.getElementById("audioSource");
 
 const geminiLiveApi = new GeminiLiveAPI(PROXY_URL, PROJECT_ID, MODEL, API_HOST);
@@ -154,57 +150,6 @@ function micOffBtnClick() {
     micOffBtn.hidden = true;
 }
 
-const videoElement = document.getElementById("video");
-const canvasElement = document.getElementById("canvas");
-
-const liveVideoManager = new LiveVideoManager(videoElement, canvasElement);
-
-const liveScreenManager = new LiveScreenManager(videoElement, canvasElement);
-
-liveVideoManager.onNewFrame = (b64Image) => {
-    geminiLiveApi.sendImageMessage(b64Image);
-};
-
-liveScreenManager.onNewFrame = (b64Image) => {
-    geminiLiveApi.sendImageMessage(b64Image);
-};
-
-function startCameraCapture() {
-    liveScreenManager.stopCapture();
-    liveVideoManager.startWebcam();
-}
-
-function startScreenCapture() {
-    liveVideoManager.stopWebcam();
-    liveScreenManager.startCapture();
-}
-
-function cameraBtnClick() {
-    startCameraCapture();
-    console.log("cameraBtnClick");
-}
-
-function screenShareBtnClick() {
-    startScreenCapture();
-    console.log("screenShareBtnClick");
-}
-
-function newCameraSelected() {
-    console.log("newCameraSelected ", cameraSelect.value);
-    liveVideoManager.updateWebcamDevice(cameraSelect.value);
-}
-
-function newMicSelected() {
-    console.log("newMicSelected", micSelect.value);
-    liveAudioInputManager.updateMicrophoneDevice(micSelect.value);
-}
-
-function disconnectBtnClick() {
-    setAppStatus("disconnected");
-    geminiLiveApi.disconnect();
-    stopAudioInput();
-}
-
 function showDialogWithMessage(messageText) {
     const dialog = document.getElementById("dialog");
     const dialogMessage = document.getElementById("dialogMessage");
@@ -280,5 +225,127 @@ function setAppStatus(status) {
             speaking.hidden = false;
             break;
         default:
+    }
+}
+
+// Log fonksiyonu
+function logWsEvent(type, event, message) {
+    const logContainer = document.getElementById("ws-logs-content");
+    if (!logContainer) return;
+    const now = new Date();
+    const time = now.toLocaleTimeString("tr-TR", { hour12: false }) + "." + String(now.getMilliseconds()).padStart(3, '0');
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+
+    // Renkli class
+    let typeClass = "";
+    if (type === "ERROR") typeClass = "error-event";
+    else if (type === "SETUP") typeClass = "setup-event";
+    else if (type === "SEND") typeClass = "send-event";
+    else if (type === "RECV") typeClass = "recv-event";
+    else typeClass = "ws-event";
+
+    // Her parça için ayrı span
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "log-time";
+    timeSpan.textContent = `[${time}]`;
+
+    const typeSpan = document.createElement("span");
+    typeSpan.className = typeClass;
+    typeSpan.textContent = `[${type}]`;
+
+    const eventSpan = document.createElement("span");
+    eventSpan.className = "log-event";
+    if (event) eventSpan.textContent = `[${event}]`;
+
+    const msgSpan = document.createElement("span");
+    msgSpan.className = "log-msg";
+    if (message instanceof ArrayBuffer) {
+        try {
+            const decoder = new TextDecoder('utf-8');
+            msgSpan.textContent = decoder.decode(new Uint8Array(message));
+        } catch (e) {
+            msgSpan.textContent = '[Veri çözümlenemedi]';
+        }
+    } else if (message instanceof Uint8Array) {
+        try {
+            const decoder = new TextDecoder('utf-8');
+            msgSpan.textContent = decoder.decode(message);
+        } catch (e) {
+            msgSpan.textContent = '[Veri çözümlenemedi]';
+        }
+    } else {
+        msgSpan.textContent = message;
+    }
+
+    // Sıralı ekle
+    entry.appendChild(timeSpan);
+    entry.appendChild(typeSpan);
+    if (event) entry.appendChild(eventSpan);
+    if (message) entry.appendChild(msgSpan);
+
+    logContainer.appendChild(entry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+// GeminiLiveAPI eventlerine log ekle
+const oldOnConnectionStarted = geminiLiveApi.onConnectionStarted;
+geminiLiveApi.onConnectionStarted = function() {
+    logWsEvent("OPEN", "WebSocket bağlantısı açıldı.");
+    if (oldOnConnectionStarted) oldOnConnectionStarted();
+};
+const oldOnErrorMessage = geminiLiveApi.onErrorMessage;
+geminiLiveApi.onErrorMessage = function(message) {
+    logWsEvent("ERROR", "WebSocket bağlantısı kesildi.", message);
+    if (oldOnErrorMessage) oldOnErrorMessage(message);
+};
+
+// Mesaj gönderme ve alma logları
+const oldSendAudioMessage = geminiLiveApi.sendAudioMessage;
+geminiLiveApi.sendAudioMessage = function(audioData) {
+    console.log("Gönderilen ses verisi:", audioData);
+    logWsEvent("SEND", "Sesli mesaj gönderildi (AUDIO)", "Ses verisi gönderildi");
+    oldSendAudioMessage.call(this, audioData);
+};
+const oldSendTextMessage = geminiLiveApi.sendTextMessage;
+geminiLiveApi.sendTextMessage = function(text) {
+    logWsEvent("SEND", "Metin mesajı gönderildi", text);
+    oldSendTextMessage.call(this, text);
+};
+const oldSendImageMessage = geminiLiveApi.sendImageMessage;
+geminiLiveApi.sendImageMessage = function(image) {
+    logWsEvent("SEND", "Görsel mesaj gönderildi (IMAGE)", image);
+    oldSendImageMessage.call(this, image);
+};
+const oldOnReceiveResponse = geminiLiveApi.onReceiveResponse;
+geminiLiveApi.onReceiveResponse = function(messageResponse) {
+    if (messageResponse.type === "AUDIO") {
+        console.log("Alınan ses verisi:", messageResponse.data);
+        logWsEvent("RECV", "Sesli mesaj alındı (AUDIO)", "Ses verisi alındı");
+    } else if (messageResponse.type === "TEXT") {
+        logWsEvent("RECV", "Metin mesajı alındı", messageResponse.data);
+    } else {
+        logWsEvent("RECV", "Bilinmeyen mesaj tipi", messageResponse.type);
+    }
+    if (oldOnReceiveResponse) oldOnReceiveResponse(messageResponse);
+};
+
+// Setup mesajı logu (örnek)
+const oldSendInitialSetupMessages = geminiLiveApi.sendInitialSetupMessages;
+geminiLiveApi.sendInitialSetupMessages = function() {
+    logWsEvent("SETUP", "Setup mesajı gönderildi.");
+    oldSendInitialSetupMessages.call(this);
+};
+
+function disconnectBtnClick() {
+    try {
+        if (geminiLiveApi && typeof geminiLiveApi.disconnect === "function") {
+            geminiLiveApi.disconnect();
+        }
+        setAppStatus("disconnected");
+        logWsEvent("CLOSE", "WebSocket bağlantısı kapatıldı.");
+    } catch (error) {
+        console.error("Bağlantı kapatılamadı:", error);
+        showDialogWithMessage("Bağlantı kapatılamadı: " + error.message);
     }
 }

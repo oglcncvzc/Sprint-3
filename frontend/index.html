@@ -1,4 +1,5 @@
 <head>
+  <meta charset="UTF-8">
   <link
     href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
     rel="stylesheet"
@@ -128,26 +129,12 @@
 
   <div id="user-input-container">
     <div>
-      <div>
-        <md-outlined-select
-          id="cameraSource"
-          label="Camera Input"
-          onchange="newCameraSelected()"
-        >
-        </md-outlined-select>
-      </div>
-
-      <br />
-
-      <div>
-        <md-outlined-select
-          id="audioSource"
-          label="Microphone Input"
-          onchange="newMicSelected()"
-        >
-        </md-outlined-select>
-      </div>
-
+      <md-outlined-select
+        id="audioSource"
+        label="Microphone Input"
+        onchange="newMicSelected()"
+      >
+      </md-outlined-select>
       <br />
       <div class="spread">
         <span id="micBtn">
@@ -155,34 +142,15 @@
             <md-icon>mic</md-icon>
           </md-filled-icon-button>
         </span>
-
         <span id="micOffBtn" hidden>
           <md-filled-icon-button onclick="micOffBtnClick()">
             <md-icon>mic_off</md-icon>
           </md-filled-icon-button>
         </span>
-
-        <span id="cameraBtn">
-          <md-filled-icon-button onclick="cameraBtnClick()">
-            <md-icon>videocam</md-icon>
-          </md-filled-icon-button>
-        </span>
-
-        <span id="screenBtn">
-          <md-filled-icon-button onclick="screenShareBtnClick()">
-            <md-icon>present_to_all</md-icon>
-          </md-filled-icon-button>
-        </span>
       </div>
     </div>
-
-    <div>
-      <div id="video-preview">
-        <video id="video" autoplay playsinline muted></video>
-        <canvas id="canvas"></canvas>
-      </div>
-    </div>
-    <div>
+    
+    <div class="text-message-container">
       <md-outlined-text-field
         id="text-message"
         label="Text Message"
@@ -201,4 +169,9 @@
       <span id="dialogMessage">A dialog that is opened by default.</span>
     </div>
   </md-dialog>
+
+  <div id="ws-logs" style="margin-top:20px;padding:15px;border:1px solid #e0e0e0;background-color:#f8f9fa;font-family:monospace;font-size:13px;height:220px;overflow-y:auto;border-radius:4px;">
+    <b>WebSocket Logları</b>
+    <div id="ws-logs-content"></div>
+  </div>
 </body>
