@@ -10,9 +10,6 @@
 - `frontend/cookieJar.js`: Script for managing cookies
 
 
-git clone https://github.com/GoogleCloudPlatform/generative-ai.git
-cd generative-ai/gemini/multimodal-live-api/websocket-demo-app
-
 python -m venv env
 source env/bin/activate
 
