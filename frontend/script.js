@@ -25,6 +25,10 @@ const speaking = document.getElementById("speaking");
 
 const micBtn = document.getElementById("micBtn");
 const micOffBtn = document.getElementById("micOffBtn");
+const cameraBtn = document.getElementById("cameraBtn");
+const screenBtn = document.getElementById("screenBtn");
+
+const cameraSelect = document.getElementById("cameraSource");
 const micSelect = document.getElementById("audioSource");
 
 const geminiLiveApi = new GeminiLiveAPI(PROXY_URL, PROJECT_ID, MODEL, API_HOST);
@@ -55,40 +59,18 @@ function getSystemInstructions() {
 }
 
 function connectBtnClick() {
-    try {
-        setAppStatus("connecting");
-        console.log("WebSocket bağlantısı başlatılıyor...");
+    setAppStatus("connecting");
 
-        geminiLiveApi.responseModalities = getSelectedResponseModality();
-        geminiLiveApi.systemInstructions = getSystemInstructions();
+    geminiLiveApi.responseModalities = getSelectedResponseModality();
+    geminiLiveApi.systemInstructions = getSystemInstructions();
 
-        geminiLiveApi.onConnectionStarted = () => {
-            console.log("WebSocket bağlantısı başarılı");
-            setAppStatus("connected");
-            startAudioInput();
-        };
+    geminiLiveApi.onConnectionStarted = () => {
+        setAppStatus("connected");
+        startAudioInput();
+    };
 
-        geminiLiveApi.onErrorMessage = (message) => {
-            console.error("Bağlantı hatası:", message);
-            showDialogWithMessage(message);
-            setAppStatus("disconnected");
-        };
-
-        if (!projectInput.value) {
-            throw new Error("Project ID boş olamaz");
-        }
-
-        if (!accessTokenInput.value) {
-            throw new Error("Access Token boş olamaz");
-        }
-
-        geminiLiveApi.setProjectId(projectInput.value);
-        geminiLiveApi.connect(accessTokenInput.value);
-    } catch (error) {
-        console.error("Bağlantı hatası:", error);
-        showDialogWithMessage("Bağlantı hatası: " + error.message);
-        setAppStatus("disconnected");
-    }
+    geminiLiveApi.setProjectId(projectInput.value);
+    geminiLiveApi.connect(accessTokenInput.value);
 }
 
 const liveAudioOutputManager = new LiveAudioOutputManager();
@@ -108,76 +90,24 @@ liveAudioInputManager.onNewAudioRecordingChunk = (audioData) => {
     geminiLiveApi.sendAudioMessage(audioData);
 };
 
-// Turn complete callback
-liveAudioInputManager.onTurnCompleteCallback = (message) => {
-    geminiLiveApi.sendMessage(message);
-};
-
-// Turn complete sinyali gönderme
-function submitTurn() {
-    geminiLiveApi.sendTurnComplete();
-    micBtn.disabled = true;
-    micOffBtn.disabled = true;
+function addMessageToChat(message) {
+    const textChat = document.getElementById("text-chat");
+    const newParagraph = document.createElement("p");
+    newParagraph.textContent = message;
+    textChat.appendChild(newParagraph);
 }
 
-// Chat baloncuklu mesaj ekleme
-function addChatMessage(text, sender = "user") {
-    const chat = document.getElementById("text-chat");
-    const bubble = document.createElement("div");
-    bubble.className = "chat-bubble " + (sender === "user" ? "user" : "model");
-    bubble.textContent = text;
-    chat.appendChild(bubble);
-    chat.scrollTop = chat.scrollHeight;
-}
-
-// Kullanıcı mesajı gönderme
-function newUserMessage() {
-    const textInput = document.getElementById("text-message");
-    const text = textInput.value.trim();
-    if (!text) return;
-    addChatMessage(text, "user");
-    geminiLiveApi.sendTextMessage(text);
-    textInput.value = "";
-}
-
-// Model mesajı ekleme
 function newModelMessage(message) {
-    addChatMessage(message, "model");
+    addMessageToChat(">> " + message);
 }
 
-// Enter ile gönderme
-window.addEventListener("DOMContentLoaded", function() {
-    const textInput = document.getElementById("text-message");
-    const sendBtn = document.getElementById("send-btn");
-    if (textInput) {
-        textInput.addEventListener("keydown", function(e) {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                newUserMessage();
-            }
-        });
-    }
-    if (sendBtn) {
-        sendBtn.addEventListener("click", newUserMessage);
-    }
+function newUserMessage() {
+    const textMessage = document.getElementById("text-message");
+    addMessageToChat("User: " + textMessage.value);
+    geminiLiveApi.sendTextMessage(textMessage.value);
 
-    // VAD sensitivity select listener
-    const vadSelect = document.getElementById("vadSensitivity");
-    if (vadSelect) {
-        vadSelect.addEventListener("change", function(e) {
-            const sensitivity = e.target.value;
-            console.log("VAD sensitivity changed to:", sensitivity);
-            setVADSensitivity(sensitivity);
-            
-            // UI feedback
-            const feedback = sensitivity === 'more' ? 
-                "Daha hassas mod: Konuşma kesintileri daha kolay tetiklenecek" : 
-                "Daha az hassas mod: Konuşma kesintileri daha az tetiklenecek";
-            
-            showDialogWithMessage(feedback);
-        });
-    }
-});
+    textMessage.value = "";
+}
 
 function startAudioInput() {
     liveAudioInputManager.connectMicrophone();
@@ -187,47 +117,70 @@ function stopAudioInput() {
     liveAudioInputManager.disconnectMicrophone();
 }
 
-// Interruption handler
-geminiLiveApi.onInterruptionCallback = () => {
-    console.log('Interruption detected');
-    liveAudioOutputManager.handleInterruption();
-    setAppStatus('interrupted');
-};
-
-// VAD sensitivity ayarı
-function setVADSensitivity(sensitivity) {
-    console.log("Setting VAD sensitivity to:", sensitivity);
-    geminiLiveApi.setVADSensitivity(sensitivity);
-    
-    // Log ekle
-    logWsEvent("VAD", "Sensitivity changed", sensitivity);
-}
-
-// Model speaking state yönetimi
-function setModelSpeaking(isSpeaking) {
-    geminiLiveApi.isModelSpeaking = isSpeaking;
-    if (isSpeaking) {
-        setAppStatus('speaking');
-    } else {
-        setAppStatus('connected');
-    }
-}
-
-// Mic button yönetimi
 function micBtnClick() {
+    console.log("micBtnClick");
     stopAudioInput();
     micBtn.hidden = true;
     micOffBtn.hidden = false;
-    liveAudioInputManager.stopRecording();
-    submitTurn(); // Turn complete sinyali gönder
 }
 
 function micOffBtnClick() {
+    console.log("micOffBtnClick");
     startAudioInput();
+
     micBtn.hidden = false;
     micOffBtn.hidden = true;
-    liveAudioInputManager.turnComplete = false;
-    liveAudioOutputManager.clearInterruption();
+}
+
+const videoElement = document.getElementById("video");
+const canvasElement = document.getElementById("canvas");
+
+const liveVideoManager = new LiveVideoManager(videoElement, canvasElement);
+
+const liveScreenManager = new LiveScreenManager(videoElement, canvasElement);
+
+liveVideoManager.onNewFrame = (b64Image) => {
+    geminiLiveApi.sendImageMessage(b64Image);
+};
+
+liveScreenManager.onNewFrame = (b64Image) => {
+    geminiLiveApi.sendImageMessage(b64Image);
+};
+
+function startCameraCapture() {
+    liveScreenManager.stopCapture();
+    liveVideoManager.startWebcam();
+}
+
+function startScreenCapture() {
+    liveVideoManager.stopWebcam();
+    liveScreenManager.startCapture();
+}
+
+function cameraBtnClick() {
+    startCameraCapture();
+    console.log("cameraBtnClick");
+}
+
+function screenShareBtnClick() {
+    startScreenCapture();
+    console.log("screenShareBtnClick");
+}
+
+function newCameraSelected() {
+    console.log("newCameraSelected ", cameraSelect.value);
+    liveVideoManager.updateWebcamDevice(cameraSelect.value);
+}
+
+function newMicSelected() {
+    console.log("newMicSelected", micSelect.value);
+    liveAudioInputManager.updateMicrophoneDevice(micSelect.value);
+}
+
+function disconnectBtnClick() {
+    setAppStatus("disconnected");
+    geminiLiveApi.disconnect();
+    stopAudioInput();
 }
 
 function showDialogWithMessage(messageText) {
@@ -304,168 +257,6 @@ function setAppStatus(status) {
         case "speaking":
             speaking.hidden = false;
             break;
-        case "interrupted":
-            speaking.hidden = false;
-            break;
         default:
-    }
-}
-
-// Log fonksiyonu
-function logWsEvent(type, event, message) {
-    const logContainer = document.getElementById("ws-logs-content");
-    if (!logContainer) return;
-    const now = new Date();
-    const time = now.toLocaleTimeString("tr-TR", { hour12: false }) + "." + String(now.getMilliseconds()).padStart(3, '0');
-    const entry = document.createElement("div");
-    entry.className = "log-entry";
-
-    // Renkli class
-    let typeClass = "";
-    if (type === "ERROR") typeClass = "error-event";
-    else if (type === "SETUP") typeClass = "setup-event";
-    else if (type === "SEND") typeClass = "send-event";
-    else if (type === "RECV") typeClass = "recv-event";
-    else typeClass = "ws-event";
-
-    // Her parça için ayrı span
-    const timeSpan = document.createElement("span");
-    timeSpan.className = "log-time";
-    timeSpan.textContent = `[${time}]`;
-
-    const typeSpan = document.createElement("span");
-    typeSpan.className = typeClass;
-    typeSpan.textContent = `[${type}]`;
-
-    const eventSpan = document.createElement("span");
-    eventSpan.className = "log-event";
-    if (event) eventSpan.textContent = `[${event}]`;
-
-    const msgSpan = document.createElement("span");
-    msgSpan.className = "log-msg";
-    if (message instanceof ArrayBuffer) {
-        try {
-            const decoder = new TextDecoder('utf-8');
-            msgSpan.textContent = decoder.decode(new Uint8Array(message));
-        } catch (e) {
-            msgSpan.textContent = '[Veri çözümlenemedi]';
-        }
-    } else if (message instanceof Uint8Array) {
-        try {
-            const decoder = new TextDecoder('utf-8');
-            msgSpan.textContent = decoder.decode(message);
-        } catch (e) {
-            msgSpan.textContent = '[Veri çözümlenemedi]';
-        }
-    } else {
-        msgSpan.textContent = message;
-    }
-
-    // Sıralı ekle
-    entry.appendChild(timeSpan);
-    entry.appendChild(typeSpan);
-    if (event) entry.appendChild(eventSpan);
-    if (message) entry.appendChild(msgSpan);
-
-    logContainer.appendChild(entry);
-    logContainer.scrollTop = logContainer.scrollHeight;
-}
-
-// GeminiLiveAPI eventlerine log ekle
-const oldOnConnectionStarted = geminiLiveApi.onConnectionStarted;
-geminiLiveApi.onConnectionStarted = function() {
-    logWsEvent("OPEN", "WebSocket bağlantısı açıldı.");
-    if (oldOnConnectionStarted) oldOnConnectionStarted();
-};
-const oldOnErrorMessage = geminiLiveApi.onErrorMessage;
-geminiLiveApi.onErrorMessage = function(message) {
-    logWsEvent("ERROR", "WebSocket bağlantısı kesildi.", message);
-    if (oldOnErrorMessage) oldOnErrorMessage(message);
-};
-
-// Mesaj gönderme ve alma logları
-const oldSendAudioMessage = geminiLiveApi.sendAudioMessage;
-geminiLiveApi.sendAudioMessage = function(audioData) {
-    console.log("Gönderilen ses verisi:", audioData);
-    logWsEvent("SEND", "Sesli mesaj gönderildi (AUDIO)", "Ses verisi gönderildi");
-    oldSendAudioMessage.call(this, audioData);
-};
-const oldSendTextMessage = geminiLiveApi.sendTextMessage;
-geminiLiveApi.sendTextMessage = function(text) {
-    logWsEvent("SEND", "Metin mesajı gönderildi", text);
-    oldSendTextMessage.call(this, text);
-};
-const oldSendImageMessage = geminiLiveApi.sendImageMessage;
-geminiLiveApi.sendImageMessage = function(image) {
-    logWsEvent("SEND", "Görsel mesaj gönderildi (IMAGE)", image);
-    oldSendImageMessage.call(this, image);
-};
-const oldOnReceiveResponse = geminiLiveApi.onReceiveResponse;
-geminiLiveApi.onReceiveResponse = function(messageResponse) {
-    if (messageResponse.type === "AUDIO") {
-        console.log("Alınan ses verisi:", messageResponse.data);
-        logWsEvent("RECV", "Sesli mesaj alındı (AUDIO)", "Ses verisi alındı");
-    } else if (messageResponse.type === "TEXT") {
-        logWsEvent("RECV", "Metin mesajı alındı", messageResponse.data);
-    } else {
-        logWsEvent("RECV", "Bilinmeyen mesaj tipi", messageResponse.type);
-    }
-    if (oldOnReceiveResponse) oldOnReceiveResponse(messageResponse);
-};
-
-// Setup mesajı logu (örnek)
-const oldSendInitialSetupMessages = geminiLiveApi.sendInitialSetupMessages;
-geminiLiveApi.sendInitialSetupMessages = function() {
-    logWsEvent("SETUP", "Setup mesajı gönderildi.");
-    oldSendInitialSetupMessages.call(this);
-};
-
-function disconnectBtnClick() {
-    try {
-        if (geminiLiveApi && typeof geminiLiveApi.disconnect === "function") {
-            geminiLiveApi.disconnect();
-        }
-        setAppStatus("disconnected");
-        logWsEvent("CLOSE", "WebSocket bağlantısı kapatıldı.");
-    } catch (error) {
-        console.error("Bağlantı kapatılamadı:", error);
-        showDialogWithMessage("Bağlantı kapatılamadı: " + error.message);
-    }
-}
-
-geminiLiveApi.onSetupComplete = () => {
-    console.log("Setup complete, enabling mic button");
-    micBtn.disabled = false;
-    micOffBtn.disabled = false;
-    setAppStatus("connected");
-};
-
-// UI feedback için
-function updateAudioFeedback(status) {
-    const feedbackElement = document.getElementById('audio-feedback');
-    switch(status) {
-        case 'speaking':
-            feedbackElement.textContent = 'Konuşma devam ediyor...';
-            break;
-        case 'silence':
-            feedbackElement.textContent = 'Sessizlik algılandı...';
-            break;
-        case 'turn_complete':
-            feedbackElement.textContent = 'Turn tamamlandı';
-            break;
-    }
-}
-
-function logMessage(message) {
-    // Console'a log
-    console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
-    
-    // UI'a log
-    const logDiv = document.getElementById('log-output');
-    if (logDiv) {
-        const logElement = document.createElement('div');
-        logElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        logDiv.appendChild(logElement);
-        logDiv.scrollTop = logDiv.scrollHeight;
     }
 }

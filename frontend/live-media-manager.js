@@ -66,18 +66,6 @@ class LiveAudioOutputManager {
         }
         return float32Array;
     }
-
-    handleInterruption() {
-        logMessage('Interruption tespit edildi');
-        this.isInterrupted = true;
-        this.stop();
-        
-        setTimeout(() => {
-            logMessage('Interruption sonrası devam ediliyor');
-            this.clearInterruption();
-            this.resume();
-        }, this.interruptionLatency);
-    }
 }
 
 class LiveAudioInputManager {
@@ -98,46 +86,40 @@ class LiveAudioInputManager {
     }
 
     async connectMicrophone() {
-        try {
-            logMessage('Mikrofon bağlantısı başlatılıyor...');
-            this.audioContext = new AudioContext({
+        this.audioContext = new AudioContext({
+            sampleRate: 16000,
+        });
+
+        let constraints = {
+            audio: {
+                channelCount: 1,
                 sampleRate: 16000,
-            });
+            },
+        };
 
-            let constraints = {
-                audio: {
-                    channelCount: 1,
-                    sampleRate: 16000,
-                },
-            };
-
-            if (this.deviceId) {
-                constraints.audio.deviceId = { exact: this.deviceId };
-            }
-
-            this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-            const source = this.audioContext.createMediaStreamSource(this.stream);
-            this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-
-            this.processor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
-                // Convert float32 to int16
-                const pcm16 = new Int16Array(inputData.length);
-                for (let i = 0; i < inputData.length; i++) {
-                    pcm16[i] = inputData[i] * 0x7fff;
-                }
-                this.pcmData.push(...pcm16);
-            };
-
-            source.connect(this.processor);
-            this.processor.connect(this.audioContext.destination);
-
-            this.interval = setInterval(this.recordChunk.bind(this), 1000);
-            logMessage('Mikrofon bağlantısı başarılı');
-        } catch (error) {
-            logMessage(`Mikrofon hatası: ${error.message}`);
+        if (this.deviceId) {
+            constraints.audio.deviceId = { exact: this.deviceId };
         }
+
+        this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        const source = this.audioContext.createMediaStreamSource(this.stream);
+        this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+
+        this.processor.onaudioprocess = (e) => {
+            const inputData = e.inputBuffer.getChannelData(0);
+            // Convert float32 to int16
+            const pcm16 = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+                pcm16[i] = inputData[i] * 0x7fff;
+            }
+            this.pcmData.push(...pcm16);
+        };
+
+        source.connect(this.processor);
+        this.processor.connect(this.audioContext.destination);
+
+        this.interval = setInterval(this.recordChunk.bind(this), 1000);
     }
 
     newAudioRecording(b64AudioData) {

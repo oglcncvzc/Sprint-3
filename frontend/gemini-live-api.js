@@ -21,6 +21,7 @@ class GeminiLiveResponseMessage {
 class GeminiLiveAPI {
     constructor(proxyUrl, projectId, model, apiHost) {
         this.proxyUrl = proxyUrl;
+
         this.projectId = projectId;
         this.model = model;
         this.modelUri = `projects/${this.projectId}/locations/us-central1/publishers/google/models/${this.model}`;
@@ -40,15 +41,11 @@ class GeminiLiveAPI {
         };
 
         this.onErrorMessage = (message) => {
-            console.error("WebSocket Error:", message);
+            alert(message);
         };
 
         this.accessToken = "";
         this.websocket = null;
-
-        this.isInterrupted = false;
-        this.isModelSpeaking = false;
-        this.vadSensitivity = 'less'; // 'more' veya 'less'
 
         console.log("Created Gemini Live API object: ", this);
     }
@@ -79,96 +76,33 @@ class GeminiLiveAPI {
     onReceiveMessage(messageEvent) {
         console.log("Message received: ", messageEvent);
         const messageData = JSON.parse(messageEvent.data);
-        
-        if (messageData.setupComplete) {
-            console.log("Setup complete, enabling mic button");
-            this.onSetupComplete();
-            return;
-        }
-
-        if (messageData.serverContent?.interrupted) {
-            console.log('Gemini: Interrupted');
-            this.isInterrupted = true;
-            this.onInterrupted();
-            return;
-        }
-
         const message = new GeminiLiveResponseMessage(messageData);
+        console.log("onReceiveMessageCallBack this ", this);
         this.onReceiveResponse(message);
     }
 
-    onInterrupted() {
-        if (this.audioOutputManager) {
-            this.audioOutputManager.stop();
-        }
-        
-        if (this.onInterruptionCallback) {
-            this.onInterruptionCallback();
-        }
-    }
-
-    setVADSensitivity(sensitivity) {
-        if (sensitivity === 'more' || sensitivity === 'less') {
-            console.log(`VAD sensitivity changing from ${this.vadSensitivity} to ${sensitivity}`);
-            this.vadSensitivity = sensitivity;
-            this.sendVADSensitivityUpdate(sensitivity);
-            
-            // State değişikliğini logla
-            if (this.onVADSensitivityChanged) {
-                this.onVADSensitivityChanged(sensitivity);
-            }
-        }
-    }
-
-    sendVADSensitivityUpdate(sensitivity) {
-        const message = {
-            vad_config: {
-                sensitivity: sensitivity
-            }
-        };
-        this.sendMessage(message);
-    }
-
-    sendTurnComplete() {
-        const message = {
-            client_content: {
-                turns: [{
-                    role: "user",
-                    parts: []
-                }],
-                turn_complete: true
-            }
-        };
-        this.sendMessage(message);
-    }
-
     setupWebSocketToService() {
-        try {
-            console.log("Connecting to WebSocket server:", this.proxyUrl);
-            
-            this.webSocket = new WebSocket(this.proxyUrl);
+        console.log("connecting: ", this.proxyUrl);
 
-            this.webSocket.onclose = (event) => {
-                console.log("WebSocket closed:", event);
-                this.onErrorMessage("Bağlantı kapandı");
-            };
+        this.webSocket = new WebSocket(this.proxyUrl);
 
-            this.webSocket.onerror = (event) => {
-                console.error("WebSocket error:", event);
-                this.onErrorMessage("Bağlantı hatası oluştu");
-            };
+        this.webSocket.onclose = (event) => {
+            console.log("websocket closed: ", event);
+            this.onErrorMessage("Connection closed");
+        };
 
-            this.webSocket.onopen = (event) => {
-                console.log("WebSocket connection established:", event);
-                this.sendInitialSetupMessages();
-                this.onConnectionStarted();
-            };
+        this.webSocket.onerror = (event) => {
+            console.log("websocket error: ", event);
+            this.onErrorMessage("Connection error");
+        };
 
-            this.webSocket.onmessage = this.onReceiveMessage.bind(this);
-        } catch (error) {
-            console.error("WebSocket setup error:", error);
-            this.onErrorMessage("WebSocket bağlantısı kurulamadı: " + error.message);
-        }
+        this.webSocket.onopen = (event) => {
+            console.log("websocket open: ", event);
+            this.sendInitialSetupMessages();
+            this.onConnectionStarted();
+        };
+
+        this.webSocket.onmessage = this.onReceiveMessage.bind(this);
     }
 
     sendInitialSetupMessages() {
@@ -227,62 +161,6 @@ class GeminiLiveAPI {
 
     sendImageMessage(base64Image, mime_type = "image/jpeg") {
         this.sendRealtimeInputMessage(base64Image, mime_type);
-    }
-
-    sendTurnContinueMessage() {
-        const message = {
-            client_content: {
-                turns: [{
-                    role: "user",
-                    parts: []
-                }],
-                turn_complete: false
-            }
-        };
-        this.sendMessage(message);
-    }
-
-    handleTurnBoundary() {
-        // Turn başlangıcı
-        this.onTurnStart = () => {
-            console.log("Turn başladı");
-            setAppStatus("user_speaking");
-        };
-
-        // Turn sonu
-        this.onTurnEnd = () => {
-            console.log("Turn bitti");
-            setAppStatus("connected");
-        };
-    }
-
-    updateVADAndTurnBoundary(sensitivity) {
-        const vadThresholds = {
-            'less': {
-                silenceDuration: 1000, // 1 saniye
-                energyThreshold: 0.3
-            },
-            'more': {
-                silenceDuration: 500,  // 0.5 saniye
-                energyThreshold: 0.2
-            }
-        };
-
-        const config = vadThresholds[sensitivity];
-        this.updateVADConfig(config);
-    }
-
-    updateVADConfig(config) {
-        this.vadConfig = {
-            ...this.vadConfig,
-            ...config
-        };
-        
-        // VAD değişikliğini logla
-        logWsEvent("VAD", "Config updated", config);
-        
-        // UI feedback
-        updateAudioFeedback('vad_updated');
     }
 }
 
