@@ -23,6 +23,7 @@
 
   <script src="gemini-live-api.js"></script>
   <script src="live-media-manager.js"></script>
+  <script src="media-handler.js"></script>
   <script src="cookieJar.js"></script>
 
   <link rel="stylesheet" href="styles.css" />
@@ -38,14 +39,6 @@
 
   <div id="model-config-container">
     <div>
-      <md-outlined-text-field
-        id="token"
-        label="Access Token"
-        value=""
-        type="password"
-      ></md-outlined-text-field>
-      <br />
-      <br />
       <md-outlined-text-field
         id="project"
         label="Project ID"
@@ -171,6 +164,12 @@
         <span id="screenBtn">
           <md-filled-icon-button onclick="screenShareBtnClick()">
             <md-icon>present_to_all</md-icon>
+          </md-filled-icon-button>
+        </span>
+
+        <span id="stopAllBtn" hidden>
+          <md-filled-icon-button onclick="stopAllMedia()">
+            <md-icon>stop</md-icon>
           </md-filled-icon-button>
         </span>
       </div>

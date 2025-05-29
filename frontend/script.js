@@ -10,11 +10,9 @@ const PROJECT_ID = "voice-asistant-459013";
 const MODEL = "gemini-2.0-flash-live-preview-04-09";
 const API_HOST = "us-central1-aiplatform.googleapis.com";
 
-const accessTokenInput = document.getElementById("token");
 const projectInput = document.getElementById("project");
 const systemInstructionsInput = document.getElementById("systemInstructions");
 
-CookieJar.init("token");
 CookieJar.init("project");
 CookieJar.init("systemInstructions");
 
@@ -58,7 +56,19 @@ function getSystemInstructions() {
     return systemInstructionsInput.value;
 }
 
-function connectBtnClick() {
+// Token'ı backend'den alma fonksiyonu
+async function getAccessToken() {
+    try {
+        const response = await fetch('http://localhost:5000/api/get-token');
+        const data = await response.json();
+        return data.token;
+    } catch (error) {
+        console.error('Token alınamadı:', error);
+        throw error;
+    }
+}
+
+async function connectBtnClick() {
     setAppStatus("connecting");
 
     geminiLiveApi.responseModalities = getSelectedResponseModality();
@@ -69,8 +79,15 @@ function connectBtnClick() {
         startAudioInput();
     };
 
+    geminiLiveApi.onConnectionError = (error) => {
+        console.error("Connection error:", error);
+        showDialogWithMessage("Bağlantı hatası: " + error);
+        setAppStatus("disconnected");
+    };
+
     geminiLiveApi.setProjectId(projectInput.value);
-    geminiLiveApi.connect(accessTokenInput.value);
+    // Boş bir auth mesajı gönder
+    geminiLiveApi.connect(JSON.stringify({}));
 }
 
 const liveAudioOutputManager = new LiveAudioOutputManager();
@@ -135,26 +152,27 @@ function micOffBtnClick() {
 const videoElement = document.getElementById("video");
 const canvasElement = document.getElementById("canvas");
 
-const liveVideoManager = new LiveVideoManager(videoElement, canvasElement);
+const mediaHandler = new MediaHandler(videoElement, canvasElement);
 
-const liveScreenManager = new LiveScreenManager(videoElement, canvasElement);
-
-liveVideoManager.onNewFrame = (b64Image) => {
-    geminiLiveApi.sendImageMessage(b64Image);
-};
-
-liveScreenManager.onNewFrame = (b64Image) => {
-    geminiLiveApi.sendImageMessage(b64Image);
+mediaHandler.onFrame = (frameData) => {
+    geminiLiveApi.sendImageMessage(frameData.realtimeInput.mediaChunks[0].data);
 };
 
 function startCameraCapture() {
-    liveScreenManager.stopCapture();
-    liveVideoManager.startWebcam();
+    mediaHandler.stopScreenShare();
+    mediaHandler.startWebcam();
+    document.getElementById('stopAllBtn').hidden = false;
 }
 
 function startScreenCapture() {
-    liveVideoManager.stopWebcam();
-    liveScreenManager.startCapture();
+    mediaHandler.stopWebcam();
+    mediaHandler.startScreenShare();
+    document.getElementById('stopAllBtn').hidden = false;
+}
+
+function stopAllMedia() {
+    mediaHandler.stopAll();
+    document.getElementById('stopAllBtn').hidden = true;
 }
 
 function cameraBtnClick() {
@@ -169,7 +187,10 @@ function screenShareBtnClick() {
 
 function newCameraSelected() {
     console.log("newCameraSelected ", cameraSelect.value);
-    liveVideoManager.updateWebcamDevice(cameraSelect.value);
+    if (mediaHandler.isWebcamActive) {
+        mediaHandler.stopWebcam();
+        mediaHandler.startWebcam();
+    }
 }
 
 function newMicSelected() {
