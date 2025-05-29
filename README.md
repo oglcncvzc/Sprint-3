@@ -28,3 +28,4 @@ gcloud components install beta
 gcloud config set project YOUR-PROJECT-ID
 gcloud auth print-access-token
 
+GOOGLE_ACCESS_TOKEN = "Tokenı yazın" backend main.py de 
