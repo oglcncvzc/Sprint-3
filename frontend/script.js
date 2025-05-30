@@ -260,24 +260,21 @@ async function setAvailableMicrophoneOptions() {
 }
 
 function setAppStatus(status) {
-    disconnected.hidden = true;
-    connecting.hidden = true;
-    connected.hidden = true;
-    speaking.hidden = true;
+    setModelState(status);
+}
 
-    switch (status) {
-        case "disconnected":
-            disconnected.hidden = false;
-            break;
-        case "connecting":
-            connecting.hidden = false;
-            break;
-        case "connected":
-            connected.hidden = false;
-            break;
-        case "speaking":
-            speaking.hidden = false;
-            break;
-        default:
+function setModelState(state) {
+    // Tüm state'leri gizle ve .active'i kaldır
+    ["disconnected", "connecting", "connected"].forEach(id => {
+        const el = document.getElementById(id);
+        el.hidden = true;
+        el.classList.remove("active");
+    });
+
+    // Sadece aktif olanı göster ve .active ekle
+    const activeEl = document.getElementById(state);
+    if (activeEl) {
+        activeEl.hidden = false;
+        activeEl.classList.add("active");
     }
 }

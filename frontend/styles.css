@@ -1,127 +1,258 @@
-:root {
-  --container-bg: rgb(224, 224, 224);
-}
-
+/* Genel Stil Düzeltmeleri */
 body {
-  font-family: "Roboto";
-  text-align: center;
-}
-h1 {
-  margin-bottom: 0;
-}
-
-#video-preview {
-  height: 200px;
-  width: 250px;
-  border-radius: 30px;
-  background-color: var(--container-bg);
-  padding: 50px;
-  display: inline-block;
-  vertical-align: top;
-}
-
-#model-input {
-  display: inline-block;
-}
-
-.icon-text {
-  vertical-align: super;
-}
-
-.state {
-  border-radius: 50px;
-  padding: 10px;
-  text-align: center;
-  background-color: rgb(203, 203, 203);
-}
-
-#disconnected {
-  background-color: #ffebee; /* Light red background */
-  color: #b71c1c; /* Dark red text */
-}
-
-#disconnected .material-symbols-outlined {
-  color: #b71c1c;
-}
-
-#connecting {
-  background-color: #fffde7; /* Light yellow background */
-  color: #f57f17; /* Dark yellow text */
-  animation: throb 1s infinite ease-in-out;
-}
-
-#connecting .material-symbols-outlined {
-  color: #f57f17;
-}
-
-#connected {
-  background-color: #e8f5e9; /* Light green background */
-  color: #2e7d32; /* Dark green text */
-}
-
-#connected .material-symbols-outlined {
-  color: #2e7d32;
-}
-
-#speaking {
-  background-color: #e3f2fd; /* Light blue background */
-  color: #1565c0; /* Dark blue text */
-  animation: throb 1s infinite ease-in-out;
-}
-
-#speaking .material-symbols-outlined {
-  color: #1565c0;
-}
-
-@keyframes throb {
-  0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.6;
-  }
-}
-
-.spread {
+  font-family: 'Roboto', sans-serif;
+  background-color: #282c34; /* Koyu arka plan */
   display: flex;
-  justify-content: space-around;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  color: #e0e0e0;
 }
 
+h1 {
+  color: #e0e0e0;
+  margin-bottom: 20px;
+}
+
+/* Ana Konteyner - Glassmorphism */
+#main-app-container {
+  background: rgba(255, 255, 255, 0.1); /* Hafif şeffaf beyaz */
+  backdrop-filter: blur(10px); /* Bulanıklık efekti */
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 30px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Üst Kontrol Çubuğu - Bağlantı ve Model Ayarları */
 #model-config-container {
   display: flex;
-  justify-content: space-around;
-  flex-direction: column; /* Stack elements vertically on mobile */
+  flex-wrap: wrap; /* Küçük ekranlarda alt alta gelmesini sağlar */
+  gap: 20px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-#user-input-container {
+#model-config-container > div {
+  flex-grow: 1;
+  min-width: 150px;
+}
+
+.modality-container {
   display: flex;
-  justify-content: space-around;
-  flex-direction: column; /* Stack elements vertically on mobile */
+  flex-direction: column;
 }
 
-@media (min-width: 768px) {
-  /* Adjust breakpoint as needed */
-  #model-config-container {
-    flex-direction: row; /* Revert to horizontal layout on larger screens */
-  }
-
-  #user-input-container {
-    flex-direction: row; /* Revert to horizontal layout on larger screens */
-  }
-
-  body {
-    text-align: left;
-  }
+.modality-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-#video {
+/* Model Durum Göstergesi */
+#model-state {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Durumlara özel renkler ve animasyonlar */
+.state {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #b0b0b0;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 1.1em;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+#disconnected.state {
+  background: rgba(229, 57, 53, 0.15);
+  color: #e53935;
+  box-shadow: 0 0 8px 0 #e5393555;
+}
+
+#connecting.state {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  box-shadow: 0 0 8px 0 #ffc10755;
+}
+
+#connected.state {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  box-shadow: 0 0 8px 0 #4caf5055;
+}
+
+
+
+/* Sadece aktif olana animasyon */
+.state.active {
+  animation: statePulse 1s infinite alternate;
+}
+
+@keyframes statePulse {
+  0%   { box-shadow: 0 0 12px 2px currentColor; opacity: 1; }
+  100% { box-shadow: 0 0 24px 6px currentColor; opacity: 0.7; }
+}
+
+.state .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* Video Önizleme Alanı */
+#video-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9; /* Video boyutunu korur */
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+#video-preview video, #video-preview canvas {
   width: 100%;
   height: 100%;
+  object-fit: cover; /* Videonun konteyneri doldurmasını sağlar */
+  display: block;
 }
 
-#canvas {
-  display: none;
+/* Alt Kontrol Çubuğu - Medya ve Mesajlaşma */
+#bottom-control-bar {
+  background: rgba(255, 255, 255, 0.1); /* Şeffaf arka plan */
+  backdrop-filter: blur(8px);
+  border-radius: 15px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: auto; /* En alta sabitler */
+}
+
+/* Mikrofon, Kamera, Ekran Paylaşımı Butonları */
+.media-controls {
+  display: flex;
+  gap: 10px;
+  flex-grow: 1; /* Diğer elementlerle boşluğu paylaşır */
+  justify-content: flex-start;
+}
+
+.media-controls md-filled-icon-button {
+  --md-filled-icon-button-container-color: rgba(255, 255, 255, 0.2);
+  --md-filled-icon-button-focus-state-layer-color: rgba(255, 255, 255, 0.4);
+  --md-filled-icon-button-hover-state-layer-color: rgba(255, 255, 255, 0.3);
+  --md-filled-icon-button-pressed-state-layer-color: rgba(255, 255, 255, 0.5);
+  color: white; /* İkon rengi */
+}
+
+/* "Hepsini Durdur" Butonu - Kırmızı ve Daha Belirgin */
+#stopAllBtn md-filled-icon-button {
+  --md-filled-icon-button-container-color: #e53935; /* Kırmızı renk */
+  --md-filled-icon-button-focus-state-layer-color: rgba(229, 57, 53, 0.8);
+  --md-filled-icon-button-hover-state-layer-color: rgba(229, 57, 53, 0.7);
+  --md-filled-icon-button-pressed-state-layer-color: rgba(229, 57, 53, 0.9);
+  color: white;
+}
+
+/* Metin Girişi ve Gönder Butonu */
+#text-message-container {
+  display: flex;
+  gap: 10px;
+  flex-grow: 2; /* Daha fazla yer kaplar */
+  align-items: center;
+}
+
+#text-message-container md-outlined-text-field {
+  flex-grow: 1;
+  --md-outlined-text-field-container-color: rgba(255, 255, 255, 0.1);
+  --md-outlined-text-field-input-text-color: white;
+  --md-outlined-text-field-label-text-color: rgba(255, 255, 255, 0.7);
+  --md-outlined-text-field-focus-label-text-color: white;
+  --md-outlined-text-field-hover-label-text-color: white;
+  --md-outlined-text-field-outline-color: rgba(255, 255, 255, 0.3);
+  --md-outlined-text-field-focus-outline-color: white;
+}
+
+#text-message-container md-icon-button {
+  --md-icon-button-state-layer-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Genel md-outlined-button stili */
+md-outlined-button {
+  --md-outlined-button-container-color: rgba(255, 255, 255, 0.1);
+  --md-outlined-button-label-text-color: white;
+  --md-outlined-button-outline-color: rgba(255, 255, 255, 0.3);
+  --md-outlined-button-hover-state-layer-color: rgba(255, 255, 255, 0.2);
+  --md-outlined-button-focus-state-layer-color: rgba(255, 255, 255, 0.3);
+  --md-outlined-button-pressed-state-layer-color: rgba(255, 255, 255, 0.4);
+}
+
+/* md-outlined-select stili */
+md-outlined-select {
+  width: 100%;
+  --md-outlined-select-container-color: rgba(255, 255, 255, 0.1);
+  --md-outlined-select-input-text-color: white;
+  --md-outlined-select-label-text-color: rgba(255, 255, 255, 0.7);
+  --md-outlined-select-outline-color: rgba(255, 255, 255, 0.3);
+  --md-outlined-select-focus-outline-color: white;
+  --md-outlined-select-hover-outline-color: white;
+  --md-outlined-select-leading-icon-color: white;
+  --md-outlined-select-trailing-icon-color: white;
+}
+
+/* md-outlined-text-field stili */
+md-outlined-text-field {
+  width: 100%;
+  --md-outlined-text-field-container-color: rgba(255, 255, 255, 0.1);
+  --md-outlined-text-field-input-text-color: white;
+  --md-outlined-text-field-label-text-color: rgba(255, 255, 255, 0.7);
+  --md-outlined-text-field-outline-color: rgba(255, 255, 255, 0.3);
+  --md-outlined-text-field-focus-outline-color: white;
+  --md-outlined-text-field-hover-outline-color: white;
+}
+
+/* md-radio stili */
+md-radio {
+  --md-radio-state-layer-color: rgba(255, 255, 255, 0.2);
+  --md-radio-selected-container-color: white;
+  --md-radio-unselected-container-color: rgba(255, 255, 255, 0.4);
+  --md-radio-selected-icon-color: #282c34; /* Seçili olduğunda içindeki daire */
+  --md-radio-unselected-icon-color: rgba(255, 255, 255, 0.7);
+}
+
+label span.material-symbols-outlined, label span.icon-text {
+  color: white;
+}
+
+
+/* Küçük ekranlar için responsive ayarlar */
+@media (max-width: 768px) {
+  #model-config-container {
+      flex-direction: column;
+      align-items: stretch;
+  }
+  #bottom-control-bar {
+      flex-direction: column;
+      align-items: stretch;
+  }
+  .media-controls {
+      justify-content: center;
+  }
 }
