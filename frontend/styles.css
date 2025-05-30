@@ -285,6 +285,13 @@ label span.material-symbols-outlined, label span.icon-text {
   gap: 4px;
   margin-top: 16px;
   min-height: 80px;
+  max-height: 350px;
+  border: 2px solid #444;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.10);
+  padding: 18px 12px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .typing-dots::after {

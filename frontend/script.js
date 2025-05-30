@@ -104,6 +104,7 @@ function showModelTyping() {
         modelTypingDiv.textContent = "";
         textChat.appendChild(modelTypingDiv);
     }
+    textChat.scrollTop = textChat.scrollHeight;
 }
 
 function updateModelTyping(text) {
@@ -124,6 +125,8 @@ function finishModelTyping() {
         clearTimeout(modelTypingTimeout);
         modelTypingTimeout = null;
     }
+    const textChat = document.getElementById("text-chat");
+    textChat.scrollTop = textChat.scrollHeight;
 }
 
 geminiLiveApi.onReceiveResponse = (messageResponse) => {
