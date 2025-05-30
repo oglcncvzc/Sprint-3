@@ -256,3 +256,45 @@ label span.material-symbols-outlined, label span.icon-text {
       justify-content: center;
   }
 }
+
+.chat-message {
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin: 8px 0;
+  max-width: 70%;
+  color: #fff;
+  font-size: 1.05em;
+  word-break: break-word;
+}
+.chat-message.user {
+  background: #2196f3;
+  color: #fff;
+  margin-left: auto;
+  text-align: right;
+}
+.chat-message.bot {
+  background: #424242;
+  color: #fff;
+  margin-right: auto;
+  text-align: left;
+}
+#text-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  min-height: 80px;
+}
+
+.typing-dots::after {
+  content: ' .';
+  animation: typingDots 1s steps(3, end) infinite;
+}
+
+@keyframes typingDots {
+  0% { content: ' .'; }
+  33% { content: ' ..'; }
+  66% { content: ' ...'; }
+  100% { content: ' .'; }
+}

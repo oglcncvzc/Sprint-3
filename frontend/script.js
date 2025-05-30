@@ -92,12 +92,52 @@ async function connectBtnClick() {
 
 const liveAudioOutputManager = new LiveAudioOutputManager();
 
+let modelMessageBuffer = "";
+let modelTypingDiv = null;
+let modelTypingTimeout = null;
+
+function showModelTyping() {
+    const textChat = document.getElementById("text-chat");
+    if (!modelTypingDiv) {
+        modelTypingDiv = document.createElement("div");
+        modelTypingDiv.className = "chat-message bot typing-dots";
+        modelTypingDiv.textContent = "";
+        textChat.appendChild(modelTypingDiv);
+    }
+}
+
+function updateModelTyping(text) {
+    if (modelTypingDiv) {
+        modelTypingDiv.textContent = text;
+        modelTypingDiv.classList.add("typing-dots");
+    }
+}
+
+function finishModelTyping() {
+    if (modelTypingDiv) {
+        modelTypingDiv.textContent = modelMessageBuffer.trim();
+        modelTypingDiv.classList.remove("typing-dots");
+        modelTypingDiv = null;
+    }
+    modelMessageBuffer = "";
+    if (modelTypingTimeout) {
+        clearTimeout(modelTypingTimeout);
+        modelTypingTimeout = null;
+    }
+}
+
 geminiLiveApi.onReceiveResponse = (messageResponse) => {
     if (messageResponse.type == "AUDIO") {
         liveAudioOutputManager.playAudioChunk(messageResponse.data);
     } else if (messageResponse.type == "TEXT") {
-        console.log("Gemini said: ", messageResponse.data);
-        newModelMessage(messageResponse.data);
+        showModelTyping();
+        modelMessageBuffer += messageResponse.data;
+        updateModelTyping(modelMessageBuffer);
+        // Her yeni mesajda zamanlayıcıyı başlat
+        if (modelTypingTimeout) clearTimeout(modelTypingTimeout);
+        modelTypingTimeout = setTimeout(() => {
+            finishModelTyping();
+        }, 1200); // 1.2 saniye boyunca yeni mesaj gelmezse mesajı tamamla
     }
 };
 
@@ -107,23 +147,36 @@ liveAudioInputManager.onNewAudioRecordingChunk = (audioData) => {
     geminiLiveApi.sendAudioMessage(audioData);
 };
 
-function addMessageToChat(message) {
+function addMessageToChat(message, isUser = false) {
     const textChat = document.getElementById("text-chat");
-    const newParagraph = document.createElement("p");
-    newParagraph.textContent = message;
-    textChat.appendChild(newParagraph);
+    const msgDiv = document.createElement("div");
+    msgDiv.className = isUser ? "chat-message user" : "chat-message bot";
+    msgDiv.textContent = message.trim();
+    textChat.appendChild(msgDiv);
+    textChat.scrollTop = textChat.scrollHeight;
 }
 
 function newModelMessage(message) {
-    addMessageToChat(">> " + message);
+    addMessageToChat(message, false);
 }
 
 function newUserMessage() {
     const textMessage = document.getElementById("text-message");
-    addMessageToChat("User: " + textMessage.value);
+    if (textMessage.value.trim() === "") return;
+    addMessageToChat(textMessage.value, true);
     geminiLiveApi.sendTextMessage(textMessage.value);
-
     textMessage.value = "";
+}
+
+// Enter ile mesaj gönderme
+const textMessageInput = document.getElementById("text-message");
+if (textMessageInput) {
+    textMessageInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            newUserMessage();
+        }
+    });
 }
 
 function startAudioInput() {
