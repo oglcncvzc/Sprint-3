@@ -10,9 +10,6 @@ SERVICE_URL = f"wss://{HOST}/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/B
 
 DEBUG = True  # Debug modunu açtım
 
-# Token'ı burada saklıyoruz
-GOOGLE_ACCESS_TOKEN = "Token"
-
 async def proxy_task(
     client_websocket: WebSocketCommonProtocol, server_websocket: WebSocketCommonProtocol
 ) -> None:
@@ -105,8 +102,13 @@ async def handle_client(client_websocket: WebSocketServerProtocol) -> None:
         if DEBUG:
             print("Received auth message:", auth_data)
 
-        # Her zaman varsayılan token'ı kullan
-        bearer_token = GOOGLE_ACCESS_TOKEN
+        # Client'tan gelen token'ı kullan
+        bearer_token = auth_data.get('bearer_token')
+        if not bearer_token:
+            print("Token bulunamadı!")
+            await client_websocket.close(code=1008, reason="Token bulunamadı")
+            return
+
         if DEBUG:
             print("Using token:", bearer_token[:10] + "...")
 

@@ -12,9 +12,11 @@ const API_HOST = "us-central1-aiplatform.googleapis.com";
 
 const projectInput = document.getElementById("project");
 const systemInstructionsInput = document.getElementById("systemInstructions");
+const tokenInput = document.getElementById("token");
 
 CookieJar.init("project");
 CookieJar.init("systemInstructions");
+CookieJar.init("token");
 
 const disconnected = document.getElementById("disconnected");
 const connecting = document.getElementById("connecting");
@@ -86,8 +88,14 @@ async function connectBtnClick() {
     };
 
     geminiLiveApi.setProjectId(projectInput.value);
-    // Boş bir auth mesajı gönder
-    geminiLiveApi.connect(JSON.stringify({}));
+    // Token'ı input'tan al
+    const token = tokenInput.value;
+    if (!token) {
+        showDialogWithMessage("Lütfen bir Access Token girin!");
+        setAppStatus("disconnected");
+        return;
+    }
+    geminiLiveApi.connect(token);
 }
 
 const liveAudioOutputManager = new LiveAudioOutputManager();
