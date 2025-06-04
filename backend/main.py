@@ -11,7 +11,7 @@ SERVICE_URL = f"wss://{HOST}/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/B
 DEBUG = True  # Debug modunu açtım
 
 # Token'ı burada saklıyoruz
-GOOGLE_ACCESS_TOKEN = "Tokenı yazın"
+GOOGLE_ACCESS_TOKEN = "Token"
 
 async def proxy_task(
     client_websocket: WebSocketCommonProtocol, server_websocket: WebSocketCommonProtocol
@@ -126,8 +126,8 @@ async def main() -> None:
     """
     Starts the WebSocket server and listens for incoming client connections.
     """
-    async with websockets.serve(handle_client, "localhost", 8080):
-        print("Running websocket server localhost:8080...")
+    async with websockets.serve(handle_client, "0.0.0.0", 8765):
+        print("Running websocket server 0.0.0.0:8765...")
         # Run forever
         await asyncio.Future()
 

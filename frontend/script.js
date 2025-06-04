@@ -5,7 +5,7 @@ window.addEventListener("load", (event) => {
     setAvailableMicrophoneOptions();
 });
 
-const PROXY_URL = "ws://localhost:8080/ws";
+const PROXY_URL = "wss://voice-asistant-459013-638345404110.europe-west1.run.app/ws";
 const PROJECT_ID = "voice-asistant-459013";
 const MODEL = "gemini-2.0-flash-live-preview-04-09";
 const API_HOST = "us-central1-aiplatform.googleapis.com";
@@ -192,17 +192,24 @@ function stopAudioInput() {
 
 function micBtnClick() {
     console.log("micBtnClick");
-    stopAudioInput();
-    micBtn.hidden = true;
-    micOffBtn.hidden = false;
+    try {
+        stopAudioInput();
+        micBtn.hidden = true;
+        micOffBtn.hidden = false;
+    } catch (error) {
+        console.error("Mikrofon kapatma hatası:", error);
+    }
 }
 
 function micOffBtnClick() {
     console.log("micOffBtnClick");
-    startAudioInput();
-
-    micBtn.hidden = false;
-    micOffBtn.hidden = true;
+    try {
+        startAudioInput();
+        micBtn.hidden = false;
+        micOffBtn.hidden = true;
+    } catch (error) {
+        console.error("Mikrofon açma hatası:", error);
+    }
 }
 
 const videoElement = document.getElementById("video");
